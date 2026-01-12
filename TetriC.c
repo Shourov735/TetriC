@@ -7,7 +7,8 @@
 #define WIDTH 10
 #define HEIGHT 20
 
-int board[HEIGHT][WIDTH] = {0};
+int board1[HEIGHT][WIDTH] = {0};
+int board2[HEIGHT][WIDTH] = {0};
 
 typedef struct{
 	int x, y;
@@ -15,9 +16,12 @@ typedef struct{
 	int shape[4][4];
 } Piece;
 
-Piece current;
-int score = 0;
-int gameOver = 0;
+Piece current1;
+Piece current2;
+int score1 = 0;
+int score2 = 0;
+int gameOver1 = 0;
+int gameOver2 = 0;
 
 
 int shapes[7][4][4] = {
@@ -58,27 +62,50 @@ int shapes[7][4][4] = {
 	 {0,0,0,0}}
 };
 
-int collision(int x, int y, int shape[4][4]) {
+int collision1(int x, int y, int shape[4][4]) {
 	for (int r=0;r<4;r++)
 		for (int c=0;c<4;c++)
 			if (shape[r][c]) {
 				int nx = x + c;
 				int ny = y + r;
 				if (nx < 0 || nx >= WIDTH || ny >= HEIGHT) return 1;
-				if (ny >= 0 && board[ny][nx]) return 1;
+				if (ny >= 0 && board1[ny][nx]) return 1;
 			}
 	return 0;
 }
 
-void newPiece() {
-	current.type = rand()%7;
+int collision2(int x, int y, int shape[4][4]) {
 	for (int r=0;r<4;r++)
 		for (int c=0;c<4;c++)
-			current.shape[r][c] = shapes[current.type][r][c];
-	current.x = WIDTH/2 - 2;
-	current.y = -2;
-	if (collision(current.x, current.y, current.shape))
-		gameOver = 1;
+			if (shape[r][c]) {
+				int nx = x + c;
+				int ny = y + r;
+				if (nx < 0 || nx >= WIDTH || ny >= HEIGHT) return 1;
+				if (ny >= 0 && board2[ny][nx]) return 1;
+			}
+	return 0;
+}
+
+void newPiece1() {
+	current1.type = rand()%7;
+	for (int r=0;r<4;r++)
+		for (int c=0;c<4;c++)
+			current1.shape[r][c] = shapes[current1.type][r][c];
+	current1.x = WIDTH/2 - 2;
+	current1.y = -2;
+	if (collision1(current1.x, current1.y, current1.shape))
+		gameOver1 = 1;
+}
+
+void newPiece2() {
+	current2.type = rand()%7;
+	for (int r=0;r<4;r++)
+		for (int c=0;c<4;c++)
+			current2.shape[r][c] = shapes[current2.type][r][c];
+	current2.x = WIDTH/2 - 2;
+	current2.y = -2;
+	if (collision2(current2.x, current2.y, current2.shape))
+		gameOver2 = 1;
 }
 
 void copyShape(int dst[4][4], int src[4][4]) {
@@ -110,108 +137,182 @@ void hidecursor() {
 }
 
 void drawBoard() {
-	gotoxy(0,0);
-	for (int r=0;r<HEIGHT;r++) {
-		printf("|");
-		for (int c=0;c<WIDTH;c++) {
-			int filled = board[r][c];
-			int active = 0;
-			int ar = r - current.y;
-			int ac = c - current.x;
-			if (ar>=0 && ar<4 && ac>=0 && ac<4 && current.shape[ar][ac])
-				active=1;
-			printf(filled || active ? "[]" : "  ");
-		}
-		printf("|\n");
-	}
-	printf("+--------------------+\n");
-	printf("Score: %d\n", score);
+    gotoxy(0,0);
+    printf("Player 1              Player 2\n");
+    for (int r=0;r<HEIGHT;r++) {
+        printf("|");
+        for (int c=0;c<WIDTH;c++) {
+            int filled = board1[r][c];
+            int active = 0;
+            int ar = r - current1.y;
+            int ac = c - current1.x;
+            if (ar>=0 && ar<4 && ac>=0 && ac<4 && current1.shape[ar][ac])
+                active=1;
+            printf(filled || active ? "[]" : "  ");
+        }
+        printf("|  |");
+        for(int c=0;c<WIDTH;c++) {
+            int filled = board2[r][c];
+            int active = 0;
+            int ar = r - current2.y;
+            int ac = c - current2.x;
+            if (ar>=0 && ar<4 && ac>=0 && ac<4 && current2.shape[ar][ac])
+                active=1;
+            printf(filled || active ? "[]" : "  ");
+        }
+        printf("|\n");
+    }
+    printf("+--------------------+  +--------------------+\n");
+    printf("Score: %d              Score: %d\n", score1, score2);
 }
 
-void mergePiece() {
+void mergePiece1() {
 	for (int r=0;r<4;r++)
 		for (int c=0;c<4;c++)
-			if (current.shape[r][c]) {
-				int nx = current.x + c;
-				int ny = current.y + r;
+			if (current1.shape[r][c]) {
+				int nx = current1.x + c;
+				int ny = current1.y + r;
 				if (ny>=0 && ny<HEIGHT && nx>=0 && nx<WIDTH)
-					board[ny][nx] = 1;
+					board1[ny][nx] = 1;
+			}
+}
+void mergePiece2() {
+	for (int r=0;r<4;r++)
+		for (int c=0;c<4;c++)
+			if (current2.shape[r][c]) {
+				int nx = current2.x + c;
+				int ny = current2.y + r;
+				if (ny>=0 && ny<HEIGHT && nx>=0 && nx<WIDTH)
+					board2[ny][nx] = 1;
 			}
 }
 
-void clearLines() {
+void clearLines1() {
 	int cleared = 0;
 	for (int r=HEIGHT-1;r>=0;r--) {
 		int full=1;
 		for (int c=0;c<WIDTH;c++)
-			if (!board[r][c]) full=0;
+			if (!board1[r][c]) full=0;
 		
 		if (full) {
 			cleared++;
 			for (int rr=r;rr>0;rr--)
 				for (int cc=0;cc<WIDTH;cc++)
-					board[rr][cc]=board[rr-1][cc];
-			for (int cc=0;cc<WIDTH;cc++) board[0][cc]=0;
+					board1[rr][cc]=board1[rr-1][cc];
+			for (int cc=0;cc<WIDTH;cc++) board1[0][cc]=0;
 			r++;
 		}
 	}
 	if (cleared>0) {
-		score += cleared*100;
+		score1 += cleared*100;
 	}
 }
-void moveDown() {
-	if (!collision(current.x, current.y+1, current.shape))
-		current.y++;
+
+void clearLines2() {
+	int cleared = 0;
+	for (int r=HEIGHT-1;r>=0;r--) {
+		int full=1;
+		for (int c=0;c<WIDTH;c++)
+			if (!board2[r][c]) full=0;
+		
+		if (full) {
+			cleared++;
+			for (int rr=r;rr>0;rr--)
+				for (int cc=0;cc<WIDTH;cc++)
+					board2[rr][cc]=board2[rr-1][cc];
+			for (int cc=0;cc<WIDTH;cc++) board2[0][cc]=0;
+			r++;
+		}
+	}
+	if (cleared>0) {
+		score2 += cleared*100;
+	}
+}
+
+void moveDown1() {
+	if (!collision1(current1.x, current1.y+1, current1.shape))
+		current1.y++;
 	else {
-		mergePiece();
-		clearLines();
-		newPiece();	
+		mergePiece1();
+		clearLines1();
+		newPiece1();	
+	}
+}
+void moveDown2() {
+	if (!collision2(current2.x, current2.y+1, current2.shape))
+		current2.y++;
+	else {
+		mergePiece2();
+		clearLines2();
+		newPiece2();
 	}
 }
 
 int main() {
 	srand(time(NULL));
 	hidecursor();
-	newPiece();
+	newPiece1();
+	newPiece2();
 
 	int speed = 500; // 0.5 seconds
 	DWORD lastTick = GetTickCount();
 
-	while (gameOver==0) {
+	while (gameOver1==0 && gameOver2==0) {
 		
 		drawBoard();
 
 		if (_kbhit()) {
-			char ch = _getch();
-			if(ch=='a' && !collision(current.x-1, current.y, current.shape))
-				current.x--;
-			else if(ch=='d' && !collision(current.x+1, current.y, current.shape))
-				current.x++;
-			else if(ch=='s')
-				moveDown();
-			else if(ch=='w') {
-				int tmp[4][4];
-				copyShape(tmp, current.shape);
-				rotate(tmp);
-				if(!collision(current.x, current.y, tmp))
-					copyShape(current.shape, tmp);
-			}
-			else if(ch==' ') {
-				while(!collision(current.x, current.y+1, current.shape))
-					current.y++;
-				;
-			}
-			else if(ch=='q') 
-				break;
-		}
+            int ch = _getch();
+            if(ch=='a' && !collision1(current1.x-1, current1.y, current1.shape))
+                current1.x--;
+            else if(ch=='d' && !collision1(current1.x+1, current1.y, current1.shape))
+                current1.x++;
+            else if(ch=='s')
+                moveDown1();
+            else if(ch=='w') {
+                int tmp[4][4];
+                copyShape(tmp, current1.shape);
+                rotate(tmp);
+                if(!collision1(current1.x, current1.y, tmp))
+                    copyShape(current1.shape, tmp);
+            }
+            else if(ch==0 || ch==224) {
+                int arrow = _getch();
+                if(arrow==75 && !collision2(current2.x-1, current2.y, current2.shape))
+                    current2.x--;
+                else if(arrow==77 && !collision2(current2.x+1, current2.y, current2.shape))
+                    current2.x++;
+                else if(arrow==80)
+                    moveDown2();
+                else if(arrow==72) {
+                    int tmp[4][4];
+                    copyShape(tmp, current2.shape);
+                    rotate(tmp);
+                    if(!collision2(current2.x, current2.y, tmp))
+                        copyShape(current2.shape, tmp);
+                }
+            }
+            else if(ch=='q') 
+                break;
+        }
 		DWORD now = GetTickCount();
 		if (now - lastTick > speed) {
-			moveDown();
+			moveDown1();
+			moveDown2();
 			lastTick = now;
 		}
 		Sleep(300);
 	}
-	gotoxy(0, HEIGHT+3);
-	printf("Game Over! Final Score: %d\n", score);
+	gotoxy(0, HEIGHT+5);
+	printf("Game Over!\n");
+	if (gameOver1)
+		printf("Player 2 Wins!\n");
+	else if (gameOver2)
+		printf("Player 1 Wins!\n");
+	else
+		printf("It's a Draw!\n");
+
+	printf("Final Score - Player 1: %d | Player 2: %d\n", score1, score2);
+	
 	return 0;
 }	
