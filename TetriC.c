@@ -22,7 +22,7 @@ int score1 = 0;
 int score2 = 0;
 int gameOver1 = 0;
 int gameOver2 = 0;
-
+int gameMode = 1;
 
 int shapes[7][4][4] = {
 	// I
@@ -138,7 +138,25 @@ void hidecursor() {
 
 void drawBoard() {
     gotoxy(0,0);
-    printf("Player 1              Player 2\n");
+	if (gameMode == 1) {
+        printf("Player 1                         \n");
+        for (int r=0;r<HEIGHT;r++) {
+            printf("|");
+            for (int c=0;c<WIDTH;c++) {
+                int filled = board1[r][c];
+                int active = 0;
+                int ar = r - current1.y;
+                int ac = c - current1.x;
+                if (ar>=0 && ar<4 && ac>=0 && ac<4 && current1.shape[ar][ac])
+                    active=1;
+                printf(filled || active ? "[]" : "  ");
+            }
+            printf("|\n");
+        }
+        printf("+--------------------+\n");
+        printf("Score: %d\n", score1);
+    } else {
+    printf("Player 1              Player 2            \n");
     for (int r=0;r<HEIGHT;r++) {
         printf("|");
         for (int c=0;c<WIDTH;c++) {
@@ -164,6 +182,7 @@ void drawBoard() {
     }
     printf("+--------------------+  +--------------------+\n");
     printf("Score: %d              Score: %d\n", score1, score2);
+	}
 }
 
 void mergePiece1() {
@@ -248,8 +267,48 @@ void moveDown2() {
 	}
 }
 
+void clearScreen() {
+    HANDLE consoleHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+    CONSOLE_SCREEN_BUFFER_INFO csbi;
+    DWORD cellCount;
+    DWORD count;
+    COORD homeCoords = {0, 0};
+    
+    if (GetConsoleScreenBufferInfo(consoleHandle, &csbi)) {
+        cellCount = csbi.dwSize.X * csbi.dwSize.Y;
+        FillConsoleOutputCharacter(consoleHandle, ' ', cellCount, homeCoords, &count);
+        FillConsoleOutputAttribute(consoleHandle, csbi.wAttributes, cellCount, homeCoords, &count);
+        SetConsoleCursorPosition(consoleHandle, homeCoords);
+    }
+}
+
+int selectMode() {
+    int choice;
+    scanf("%d", &choice);
+	while (getchar() != '\n');
+    if (choice == 1 || choice == 2) {
+        return choice;
+    }
+    printf("Invalid choice! Defaulting to Single-Player Mode.\n");
+    Sleep(1500);
+    return 1;
+}
+
 int main() {
 	srand(time(NULL));
+	clearScreen();
+	printf("\n\n");
+    printf("         ===== TETRIS GAME =====\n\n");
+    printf("         Select Game Mode:\n\n");
+    printf("         1. Single Player\n");
+    printf("         2. Two Players\n\n");
+    printf("         Enter your choice (1 or 2): ");
+    gameMode = selectMode();
+	if (gameMode == 1) {
+        gameOver2 = 1; 
+    }
+	fflush(stdout);
+	clearScreen();
 	hidecursor();
 	newPiece1();
 	newPiece2();
@@ -257,7 +316,7 @@ int main() {
 	int speed = 500; // 0.5 seconds
 	DWORD lastTick = GetTickCount();
 
-	while (gameOver1==0 && gameOver2==0) {
+	while (gameMode==1 && gameOver1==0 || gameMode==2 && gameOver1==0 && gameOver2==0) {
 		
 		drawBoard();
 
@@ -276,7 +335,18 @@ int main() {
                 if(!collision1(current1.x, current1.y, tmp))
                     copyShape(current1.shape, tmp);
             }
-            else if(ch==0 || ch==224) {
+			else if(ch=='z') {
+				while(!collision1(current1.x, current1.y+1, current1.shape))
+					current1.y++;
+				;
+			}
+			else if(ch==' ') {
+				while(!collision2(current2.x, current2.y+1, current2.shape))
+					current2.y++;
+				;
+			}
+
+            else if(gameMode==2 && (ch==0 || ch==224)) {
                 int arrow = _getch();
                 if(arrow==75 && !collision2(current2.x-1, current2.y, current2.shape))
                     current2.x--;
@@ -292,18 +362,24 @@ int main() {
                         copyShape(current2.shape, tmp);
                 }
             }
+
             else if(ch=='q') 
                 break;
         }
 		DWORD now = GetTickCount();
 		if (now - lastTick > speed) {
 			moveDown1();
-			moveDown2();
+			if (gameMode == 2)
+				moveDown2();
 			lastTick = now;
 		}
 		Sleep(300);
 	}
 	gotoxy(0, HEIGHT+5);
+	if (gameMode == 1) {
+        printf("Game Over!\n");
+        printf("Final Score: %d\n", score1);
+    } else {
 	printf("Game Over!\n");
 	if (gameOver1)
 		printf("Player 2 Wins!\n");
@@ -313,6 +389,6 @@ int main() {
 		printf("It's a Draw!\n");
 
 	printf("Final Score - Player 1: %d | Player 2: %d\n", score1, score2);
-	
+	}
 	return 0;
 }	
