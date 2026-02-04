@@ -21,10 +21,27 @@ Piece current1;
 Piece current2;
 int score1 = 0;
 int score2 = 0;
+int lines1 = 0;
+int lines2 = 0;
 int gameOver1 = 0;
 int gameOver2 = 0;
 int gameMode = 1;
+int difficulty = 2;
+int level = 1;
 int highScore = 0;
+int paused = 0;
+
+int speed = 500;
+int baseSpeed = 500;
+int minSpeed = 120;
+int speedStep = 20;
+int speedInterval = 15000;
+
+int nextType1 = -1;
+int nextType2 = -1;
+
+const char* pieceNames[7] = {"I","O","T","S","Z","J","L"};
+const char* diffNames[3] = {"Easy","Medium","Hard"};
 
 int shapes[7][4][4] = {
 	// I
@@ -81,6 +98,33 @@ void saveHighScore(int score) {
 	fclose(f);
 }
 
+void setupDifficulty(int diff) {
+	if (diff == 1) {
+		baseSpeed = 650;
+		minSpeed = 200;
+		speedStep = 20;
+		speedInterval = 20000;
+	} else if (diff == 2) {
+		baseSpeed = 500;
+		minSpeed = 140;
+		speedStep = 25;
+		speedInterval = 15000;
+		
+	} else if( diff == 3) {
+		baseSpeed = 350;
+		minSpeed = 90;
+		speedStep = 30;
+		speedInterval = 12000;
+	}
+	speed = baseSpeed;
+	level = 1;
+}
+
+void initNextPieces() {
+	nextType1 = rand()%7;
+	nextType2 = rand()%7;
+}
+
 int collision1(int x, int y, int shape[4][4]) {
 	for (int r=0;r<4;r++)
 		for (int c=0;c<4;c++)
@@ -106,7 +150,9 @@ int collision2(int x, int y, int shape[4][4]) {
 }
 
 void newPiece1() {
-	current1.type = rand()%7;
+	if (nextType1 < 0) nextType1 = rand()%7;
+	current1.type = nextType1;
+	nextType1 = rand()%7;
 	for (int r=0;r<4;r++)
 		for (int c=0;c<4;c++)
 			current1.shape[r][c] = shapes[current1.type][r][c];
@@ -117,7 +163,9 @@ void newPiece1() {
 }
 
 void newPiece2() {
-	current2.type = rand()%7;
+	if (nextType2 < 0) nextType2 = rand()%7;
+	current2.type = nextType2;
+	nextType2 = rand()%7;
 	for (int r=0;r<4;r++)
 		for (int c=0;c<4;c++)
 			current2.shape[r][c] = shapes[current2.type][r][c];
@@ -158,7 +206,7 @@ void hidecursor() {
 void drawBoard() {
     gotoxy(0,0);
 	if (gameMode == 1) {
-        printf("Player 1                         \n");
+        printf("Player 1   Difficulty: %s\n", diffNames[difficulty-1]);
         for (int r=0;r<HEIGHT;r++) {
             printf("|");
             for (int c=0;c<WIDTH;c++) {
@@ -173,7 +221,11 @@ void drawBoard() {
             printf("|\n");
         }
         printf("+--------------------+\n");
-        printf("Score: %d\n", score1);
+        printf("Score: %d   High: %d\n", score1, highScore);
+        printf("Lines: %d   Level: %d   Speed: %dms\n", lines1, level, speed);
+        printf("Next: %s\n", pieceNames[nextType1]);
+        if (paused)
+            printf("PAUSED - Press P to resume\n");
     } else {
     printf("Player 1              Player 2            \n");
     for (int r=0;r<HEIGHT;r++) {
@@ -201,6 +253,11 @@ void drawBoard() {
     }
     printf("+--------------------+  +--------------------+\n");
     printf("Score: %d              Score: %d\n", score1, score2);
+    printf("Lines: %d              Lines: %d\n", lines1, lines2);
+    printf("Next: %s               Next: %s\n", pieceNames[nextType1], pieceNames[nextType2]);
+    printf("Level: %d  Difficulty: %s  High: %d\n", level, diffNames[difficulty-1], highScore);
+    if (paused)
+        printf("PAUSED - Press P to resume\n");
 	}
 }
 
@@ -225,7 +282,7 @@ void mergePiece2() {
 			}
 }
 
-void clearLines1() {
+int clearLines1() {
 	int cleared = 0;
 	for (int r=HEIGHT-1;r>=0;r--) {
 		int full=1;
@@ -242,11 +299,18 @@ void clearLines1() {
 		}
 	}
 	if (cleared>0) {
-		score1 += cleared*100;
+		int add = 0;
+		if (cleared == 1) add = 100;
+		else if (cleared == 2) add = 300;
+		else if (cleared == 3) add = 500;
+		else if (cleared >= 4) add = 800;
+		score1 += add * level;
+		lines1 += cleared;
 	}
+	return cleared;
 }
 
-void clearLines2() {
+int clearLines2() {
 	int cleared = 0;
 	for (int r=HEIGHT-1;r>=0;r--) {
 		int full=1;
@@ -263,26 +327,37 @@ void clearLines2() {
 		}
 	}
 	if (cleared>0) {
-		score2 += cleared*100;
+		int add = 0;
+		if (cleared == 1) add = 100;
+		else if (cleared == 2) add = 300;
+		else if (cleared == 3) add = 500;
+		else if (cleared >= 4) add = 800;
+		score2 += add * level;
+		lines2 += cleared;
 	}
+	return cleared;
 }
 
-void moveDown1() {
-	if (!collision1(current1.x, current1.y+1, current1.shape))
+int moveDown1() {
+	if (!collision1(current1.x, current1.y+1, current1.shape)) {
 		current1.y++;
-	else {
+		return 1;
+	} else {
 		mergePiece1();
 		clearLines1();
-		newPiece1();	
+		newPiece1();
+		return 0;
 	}
 }
-void moveDown2() {
-	if (!collision2(current2.x, current2.y+1, current2.shape))
+int moveDown2() {
+	if (!collision2(current2.x, current2.y+1, current2.shape)) {
 		current2.y++;
-	else {
+		return 1;
+	} else {
 		mergePiece2();
 		clearLines2();
 		newPiece2();
+		return 0;
 	}
 }
 
@@ -313,6 +388,18 @@ int selectMode() {
     return 1;
 }
 
+int selectDifficulty() {
+	int choice;
+	scanf("%d", &choice);
+	while (getchar() != '\n');
+	if (choice >= 1 && choice <= 3) {
+		return choice;
+	}
+	printf("Invalid choice! Defaulting to Medium Difficulty.\n");
+	Sleep(1500);
+	return 2;
+}
+
 int main() {
 	srand(time(NULL));
 	clearScreen();
@@ -323,17 +410,29 @@ int main() {
     printf("         2. Two Players\n\n");
     printf("         Enter your choice (1 or 2): ");
     gameMode = selectMode();
+
+    printf("\n         Select Difficulty:\n\n");
+    printf("         1. Easy\n");
+    printf("         2. Medium\n");
+    printf("         3. Hard\n\n");
+    printf("         Enter your choice (1 to 3): ");
+    difficulty = selectDifficulty();
+
+    setupDifficulty(difficulty);
+    highScore = loadHighScore();
+
 	if (gameMode == 1) {
         gameOver2 = 1; 
     }
 	fflush(stdout);
 	clearScreen();
 	hidecursor();
+	initNextPieces();
 	newPiece1();
 	newPiece2();
 
-	int speed = 500; // 0.5 seconds
 	DWORD lastTick = GetTickCount();
+	DWORD lastSpeedTick = lastTick;
 
 	while (gameMode==1 && gameOver1==0 || gameMode==2 && gameOver1==0 && gameOver2==0) {
 		
@@ -341,63 +440,88 @@ int main() {
 
 		if (_kbhit()) {
             int ch = _getch();
-            if(ch=='a' && !collision1(current1.x-1, current1.y, current1.shape))
-                current1.x--;
-            else if(ch=='d' && !collision1(current1.x+1, current1.y, current1.shape))
-                current1.x++;
-            else if(ch=='s')
-                moveDown1();
-            else if(ch=='w') {
-                int tmp[4][4];
-                copyShape(tmp, current1.shape);
-                rotate(tmp);
-                if(!collision1(current1.x, current1.y, tmp))
-                    copyShape(current1.shape, tmp);
-            }
-			else if(ch=='z') {
-				while(!collision1(current1.x, current1.y+1, current1.shape))
-					current1.y++;
-				;
+			if (ch=='q')
+				break;
+			if (ch=='p') {
+				paused = !paused;
 			}
-			else if(ch==' ') {
-				while(!collision2(current2.x, current2.y+1, current2.shape))
-					current2.y++;
-				;
+			if (!paused) {
+				if(ch=='a' && !collision1(current1.x-1, current1.y, current1.shape))
+					current1.x--;
+				else if(ch=='d' && !collision1(current1.x+1, current1.y, current1.shape))
+					current1.x++;
+				else if(ch=='s') {
+					if (moveDown1()) score1 += 1;
+				}
+				else if(ch=='w') {
+					int tmp[4][4];
+					copyShape(tmp, current1.shape);
+					rotate(tmp);
+					if(!collision1(current1.x, current1.y, tmp))
+						copyShape(current1.shape, tmp);
+				}
+				else if(ch=='z') {
+					int dropped = 0;
+					while(!collision1(current1.x, current1.y+1, current1.shape)) {
+						current1.y++;
+						dropped++;
+					}
+					if (dropped > 0) score1 += dropped * 2;
+				}
+				else if(gameMode==2 && ch==' ') {
+					int dropped = 0;
+					while(!collision2(current2.x, current2.y+1, current2.shape)) {
+						current2.y++;
+						dropped++;
+					}
+					if (dropped > 0) score2 += dropped * 2;
+				}
+
+				else if(gameMode==2 && (ch==0 || ch==224)) {
+					int arrow = _getch();
+					if(arrow==75 && !collision2(current2.x-1, current2.y, current2.shape))
+						current2.x--;
+					else if(arrow==77 && !collision2(current2.x+1, current2.y, current2.shape))
+						current2.x++;
+					else if(arrow==80) {
+						if (moveDown2()) score2 += 1;
+					}
+					else if(arrow==72) {
+						int tmp[4][4];
+						copyShape(tmp, current2.shape);
+						rotate(tmp);
+						if(!collision2(current2.x, current2.y, tmp))
+							copyShape(current2.shape, tmp);
+					}
+				}
 			}
-
-            else if(gameMode==2 && (ch==0 || ch==224)) {
-                int arrow = _getch();
-                if(arrow==75 && !collision2(current2.x-1, current2.y, current2.shape))
-                    current2.x--;
-                else if(arrow==77 && !collision2(current2.x+1, current2.y, current2.shape))
-                    current2.x++;
-                else if(arrow==80)
-                    moveDown2();
-                else if(arrow==72) {
-                    int tmp[4][4];
-                    copyShape(tmp, current2.shape);
-                    rotate(tmp);
-                    if(!collision2(current2.x, current2.y, tmp))
-                        copyShape(current2.shape, tmp);
-                }
-            }
-
-            else if(ch=='q') 
-                break;
         }
 		DWORD now = GetTickCount();
-		if (now - lastTick > speed) {
+		if (!paused && now - lastTick > (DWORD)speed) {
 			moveDown1();
 			if (gameMode == 2)
 				moveDown2();
 			lastTick = now;
 		}
-		Sleep(300);
+		if (!paused && now - lastSpeedTick > (DWORD)speedInterval) {
+			if (speed > minSpeed) {
+				speed -= speedStep;
+				if (speed < minSpeed) speed = minSpeed;
+				level++;
+			}
+			lastSpeedTick = now;
+		}
+		if (paused) {
+			lastTick = now;
+			lastSpeedTick = now;
+		}
+		Sleep(20);
 	}
-	gotoxy(0, HEIGHT+5);
+	gotoxy(0, HEIGHT+7);
 	if (gameMode == 1) {
         printf("Game Over!\n");
         printf("Final Score: %d\n", score1);
+        printf("Lines Cleared: %d\n", lines1);
     } else {
 	printf("Game Over!\n");
 	if (gameOver1)
@@ -408,6 +532,7 @@ int main() {
 		printf("It's a Draw!\n");
 
 	printf("Final Score - Player 1: %d | Player 2: %d\n", score1, score2);
+	printf("Lines Cleared - Player 1: %d | Player 2: %d\n", lines1, lines2);
 	}
 
 	int bestScore = score1;
