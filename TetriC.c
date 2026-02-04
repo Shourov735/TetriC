@@ -6,6 +6,7 @@
 
 #define WIDTH 10
 #define HEIGHT 20
+#define HIGHSCORE_FILE "highscore.txt"
 
 int board1[HEIGHT][WIDTH] = {0};
 int board2[HEIGHT][WIDTH] = {0};
@@ -23,6 +24,7 @@ int score2 = 0;
 int gameOver1 = 0;
 int gameOver2 = 0;
 int gameMode = 1;
+int highScore = 0;
 
 int shapes[7][4][4] = {
 	// I
@@ -61,6 +63,23 @@ int shapes[7][4][4] = {
 	 {1,0,0,0},
 	 {0,0,0,0}}
 };
+
+int loadHighScore() {
+	FILE *f = fopen(HIGHSCORE_FILE, "r");
+	int s = 0;
+	if (f) {
+		if (fscanf(f, "%d", &s) != 1) s = 0;
+		fclose(f);
+	}
+	return s;
+}
+
+void saveHighScore(int score) {
+	FILE *f = fopen(HIGHSCORE_FILE, "w");
+	if (!f) return;
+	fprintf(f, "%d", score);
+	fclose(f);
+}
 
 int collision1(int x, int y, int shape[4][4]) {
 	for (int r=0;r<4;r++)
@@ -389,6 +408,16 @@ int main() {
 		printf("It's a Draw!\n");
 
 	printf("Final Score - Player 1: %d | Player 2: %d\n", score1, score2);
+	}
+
+	int bestScore = score1;
+	if (gameMode == 2 && score2 > bestScore) bestScore = score2;
+	if (bestScore > highScore) {
+		highScore = bestScore;
+		saveHighScore(highScore);
+		printf("New High Score: %d\n", highScore);
+	} else {
+		printf("High Score: %d\n", highScore);
 	}
 	return 0;
 }	
