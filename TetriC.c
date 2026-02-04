@@ -235,6 +235,32 @@ void setSideLine(char side[HEIGHT][SIDE_W+1], int row, const char* text) {
 	side[row][SIDE_W] = '\0';
 }
 
+void buildPreviewRow(int type, int row, char* rowLine) {
+	int idx = 0;
+	for (int c=0;c<4;c++) {
+		if (shapes[type][row][c]) {
+			rowLine[idx++] = '[';
+			rowLine[idx++] = ']';
+		} else {
+			rowLine[idx++] = ' ';
+			rowLine[idx++] = ' ';
+		}
+	}
+	rowLine[idx] = '\0';
+}
+
+void setPreviewBox(char side[HEIGHT][SIDE_W+1], int startRow, int type) {
+	char line[32];
+	char rowLine[16];
+	setSideLine(side, startRow, "+--------+");
+	for (int r=0;r<4;r++) {
+		buildPreviewRow(type, r, rowLine);
+		sprintf(line, "|%s|", rowLine);
+		setSideLine(side, startRow + 1 + r, line);
+	}
+	setSideLine(side, startRow + 5, "+--------+");
+}
+
 void drawBoard() {
     gotoxy(0,0);
 	char side[HEIGHT][SIDE_W+1];
@@ -255,14 +281,15 @@ void drawBoard() {
 		setSideLine(side, 5, line);
 		sprintf(line, "Status: %s", paused ? "PAUSED" : "RUNNING");
 		setSideLine(side, 6, line);
-		sprintf(line, "Next: %s", pieceNames[nextType1]);
+		sprintf(line, "Next Piece: %s", pieceNames[nextType1]);
 		setSideLine(side, 7, line);
-		setSideLine(side, 8, "Controls:");
-		setSideLine(side, 9, "A/D: Move");
-		setSideLine(side, 10, "W: Rotate");
-		setSideLine(side, 11, "S: Soft drop (+1)");
-		setSideLine(side, 12, "Z: Hard drop (+2/row)");
-		setSideLine(side, 13, "P: Pause   Q: Quit");
+		setPreviewBox(side, 8, nextType1);
+		setSideLine(side, 14, "Controls:");
+		setSideLine(side, 15, "A/D: Move");
+		setSideLine(side, 16, "W: Rotate");
+		setSideLine(side, 17, "S: Soft drop (+1)");
+		setSideLine(side, 18, "Z: Hard drop (+2/row)");
+		setSideLine(side, 19, "P: Pause   Q: Quit");
 
         printf("Player 1\n");
         for (int r=0;r<HEIGHT;r++) {
@@ -292,14 +319,11 @@ void drawBoard() {
 		setSideLine(side, 4, line);
 		sprintf(line, "Player1 Next: %s", pieceNames[nextType1]);
 		setSideLine(side, 5, line);
+		setPreviewBox(side, 6, nextType1);
 		sprintf(line, "Player2 Next: %s", pieceNames[nextType2]);
-		setSideLine(side, 6, line);
-		setSideLine(side, 7, "Controls:");
-		setSideLine(side, 8, "A/D: Move");
-		setSideLine(side, 9, "W: Rotate");
-		setSideLine(side, 10, "S: Soft drop (+1)");
-		setSideLine(side, 11, "Z: Hard drop (+2/row)");
-		setSideLine(side, 12, "P: Pause   Q: Quit");
+		setSideLine(side, 12, line);
+		setPreviewBox(side, 13, nextType2);
+		setSideLine(side, 19, "P1: WASD/Z  P2: Arrows/Space  P=Pause | Q=Quit");
 
     	printf("Player 1              Player 2            \n");
     	for (int r=0;r<HEIGHT;r++) {
@@ -429,6 +453,26 @@ int moveDown2() {
 	}
 }
 
+void hardDrop1() {
+	int dropped = 0;
+	while(!collision1(current1.x, current1.y+1, current1.shape)) {
+		current1.y++;
+		dropped++;
+	}
+	if (dropped > 0) score1 += dropped * 2;
+	moveDown1();
+}
+
+void hardDrop2() {
+	int dropped = 0;
+	while(!collision2(current2.x, current2.y+1, current2.shape)) {
+		current2.y++;
+		dropped++;
+	}
+	if (dropped > 0) score2 += dropped * 2;
+	moveDown2();
+}
+
 void clearScreen() {
     HANDLE consoleHandle = GetStdHandle(STD_OUTPUT_HANDLE);
     CONSOLE_SCREEN_BUFFER_INFO csbi;
@@ -533,20 +577,10 @@ int main() {
 						copyShape(current1.shape, tmp);
 				}
 				else if(ch=='z') {
-					int dropped = 0;
-					while(!collision1(current1.x, current1.y+1, current1.shape)) {
-						current1.y++;
-						dropped++;
-					}
-					if (dropped > 0) score1 += dropped * 2;
+					hardDrop1();
 				}
 				else if(gameMode==2 && ch==' ') {
-					int dropped = 0;
-					while(!collision2(current2.x, current2.y+1, current2.shape)) {
-						current2.y++;
-						dropped++;
-					}
-					if (dropped > 0) score2 += dropped * 2;
+					hardDrop2();
 				}
 
 				else if(gameMode==2 && (ch==0 || ch==224)) {
