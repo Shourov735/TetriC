@@ -220,10 +220,51 @@ void hidecursor() {
    SetConsoleCursorInfo(consoleHandle, &info);
 }
 
+void clearSide(char side[HEIGHT][SIDE_W+1]) {
+	for (int r=0;r<HEIGHT;r++) {
+		for (int c=0;c<SIDE_W;c++) side[r][c] = ' ';
+		side[r][SIDE_W] = '\0';
+	}
+}
+
+void setSideLine(char side[HEIGHT][SIDE_W+1], int row, const char* text) {
+	if (row < 0 || row >= HEIGHT) return;
+	int i = 0;
+	for (; i < SIDE_W && text[i]; i++) side[row][i] = text[i];
+	for (; i < SIDE_W; i++) side[row][i] = ' ';
+	side[row][SIDE_W] = '\0';
+}
+
 void drawBoard() {
     gotoxy(0,0);
+	char side[HEIGHT][SIDE_W+1];
+	char line[64];
+	clearSide(side);
 	if (gameMode == 1) {
-        printf("Player 1   Difficulty: %s\n", diffNames[difficulty-1]);
+		sprintf(line, "Difficulty: %s", diffNames[difficulty-1]);
+		setSideLine(side, 0, line);
+		sprintf(line, "Score: %d", score1);
+		setSideLine(side, 1, line);
+		sprintf(line, "High: %d", highScore1);
+		setSideLine(side, 2, line);
+		sprintf(line, "Lines: %d", lines1);
+		setSideLine(side, 3, line);
+		sprintf(line, "Level: %d", level);
+		setSideLine(side, 4, line);
+		sprintf(line, "Speed: %dms", speed);
+		setSideLine(side, 5, line);
+		sprintf(line, "Status: %s", paused ? "PAUSED" : "RUNNING");
+		setSideLine(side, 6, line);
+		sprintf(line, "Next: %s", pieceNames[nextType1]);
+		setSideLine(side, 7, line);
+		setSideLine(side, 8, "Controls:");
+		setSideLine(side, 9, "A/D: Move");
+		setSideLine(side, 10, "W: Rotate");
+		setSideLine(side, 11, "S: Soft drop (+1)");
+		setSideLine(side, 12, "Z: Hard drop (+2/row)");
+		setSideLine(side, 13, "P: Pause   Q: Quit");
+
+        printf("Player 1\n");
         for (int r=0;r<HEIGHT;r++) {
             printf("|");
             for (int c=0;c<WIDTH;c++) {
@@ -235,17 +276,33 @@ void drawBoard() {
                     active=1;
                 printf(filled || active ? "[]" : "  ");
             }
-            printf("|\n");
+            printf("|  %-*s\n", SIDE_W, side[r]);
         }
         printf("+--------------------+\n");
-        printf("Score: %d   High: %d\n", score1, highScore1);
-        printf("Lines: %d   Level: %d   Speed: %dms\n", lines1, level, speed);
-        printf("Next: %s\n", pieceNames[nextType1]);
-        if (paused)
-            printf("PAUSED - Press P to resume\n");
     } else {
-    printf("Player 1              Player 2            \n");
-    for (int r=0;r<HEIGHT;r++) {
+		sprintf(line, "Difficulty: %s  Level: %d", diffNames[difficulty-1], level);
+		setSideLine(side, 0, line);
+		sprintf(line, "Speed: %dms  Status: %s", speed, paused ? "PAUSED" : "RUNNING");
+		setSideLine(side, 1, line);
+		sprintf(line, "Score Player1: %d  Player2: %d", score1, score2);
+		setSideLine(side, 2, line);
+		sprintf(line, "High  Player1: %d  Player2: %d", highScore1, highScore2);
+		setSideLine(side, 3, line);
+		sprintf(line, "Lines Player1: %d  Player2: %d", lines1, lines2);
+		setSideLine(side, 4, line);
+		sprintf(line, "Player1 Next: %s", pieceNames[nextType1]);
+		setSideLine(side, 5, line);
+		sprintf(line, "Player2 Next: %s", pieceNames[nextType2]);
+		setSideLine(side, 6, line);
+		setSideLine(side, 7, "Controls:");
+		setSideLine(side, 8, "A/D: Move");
+		setSideLine(side, 9, "W: Rotate");
+		setSideLine(side, 10, "S: Soft drop (+1)");
+		setSideLine(side, 11, "Z: Hard drop (+2/row)");
+		setSideLine(side, 12, "P: Pause   Q: Quit");
+
+    	printf("Player 1              Player 2            \n");
+    	for (int r=0;r<HEIGHT;r++) {
         printf("|");
         for (int c=0;c<WIDTH;c++) {
             int filled = board1[r][c];
@@ -266,15 +323,9 @@ void drawBoard() {
                 active=1;
             printf(filled || active ? "[]" : "  ");
         }
-        printf("|\n");
+        printf("|  %-*s\n", SIDE_W, side[r]);
     }
     printf("+--------------------+  +--------------------+\n");
-    printf("Score: %d              Score: %d\n", score1, score2);
-    printf("Lines: %d              Lines: %d\n", lines1, lines2);
-    printf("Next: %s               Next: %s\n", pieceNames[nextType1], pieceNames[nextType2]);
-    printf("Level: %d  Difficulty: %s  High1: %d/ High2 %d\n", level, diffNames[difficulty-1], highScore1, highScore2);
-    if (paused)
-        printf("PAUSED - Press P to resume\n");
 	}
 }
 
@@ -421,7 +472,9 @@ int main() {
 	srand(time(NULL));
 	clearScreen();
 	printf("\n\n");
-    printf("         ===== TETRIS GAME =====\n\n");
+    printf("         ====================\n");
+    printf("                TETRIS\n");
+    printf("         ====================\n\n");
     printf("         Select Game Mode:\n\n");
     printf("         1. Single Player\n");
     printf("         2. Two Players\n\n");
