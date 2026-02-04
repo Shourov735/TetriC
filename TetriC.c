@@ -6,7 +6,7 @@
 
 #define WIDTH 10
 #define HEIGHT 20
-#define HIGHSCORE_FILE "highscore.txt"
+#define SIDE_W 50
 
 int board1[HEIGHT][WIDTH] = {0};
 int board2[HEIGHT][WIDTH] = {0};
@@ -28,7 +28,8 @@ int gameOver2 = 0;
 int gameMode = 1;
 int difficulty = 2;
 int level = 1;
-int highScore = 0;
+int highScore1 = 0;
+int highScore2 = 0;
 int paused = 0;
 
 int speed = 500;
@@ -39,6 +40,9 @@ int speedInterval = 15000;
 
 int nextType1 = -1;
 int nextType2 = -1;
+
+char highScoreFile1[64] = "";
+char highScoreFile2[64] = "";
 
 const char* pieceNames[7] = {"I","O","T","S","Z","J","L"};
 const char* diffNames[3] = {"Easy","Medium","Hard"};
@@ -81,8 +85,21 @@ int shapes[7][4][4] = {
 	 {0,0,0,0}}
 };
 
-int loadHighScore() {
-	FILE *f = fopen(HIGHSCORE_FILE, "r");
+void setHighScoreFiles(int diff) {
+	if (diff == 1) {
+		strcpy(highScoreFile1, "highscore_easy_p1.txt");
+		strcpy(highScoreFile2, "highscore_easy_p2.txt");
+	} else if (diff == 3) {
+		strcpy(highScoreFile1, "highscore_hard_p1.txt");
+		strcpy(highScoreFile2, "highscore_hard_p2.txt");
+	} else {
+		strcpy(highScoreFile1, "highscore_medium_p1.txt");
+		strcpy(highScoreFile2, "highscore_medium_p2.txt");
+	}
+}
+
+int loadHighScore(const char* file) {
+	FILE *f = fopen(file, "r");
 	int s = 0;
 	if (f) {
 		if (fscanf(f, "%d", &s) != 1) s = 0;
@@ -91,8 +108,8 @@ int loadHighScore() {
 	return s;
 }
 
-void saveHighScore(int score) {
-	FILE *f = fopen(HIGHSCORE_FILE, "w");
+void saveHighScore(const char* file, int score) {
+	FILE *f = fopen(file, "w");
 	if (!f) return;
 	fprintf(f, "%d", score);
 	fclose(f);
@@ -221,7 +238,7 @@ void drawBoard() {
             printf("|\n");
         }
         printf("+--------------------+\n");
-        printf("Score: %d   High: %d\n", score1, highScore);
+        printf("Score: %d   High: %d\n", score1, highScore1);
         printf("Lines: %d   Level: %d   Speed: %dms\n", lines1, level, speed);
         printf("Next: %s\n", pieceNames[nextType1]);
         if (paused)
@@ -255,7 +272,7 @@ void drawBoard() {
     printf("Score: %d              Score: %d\n", score1, score2);
     printf("Lines: %d              Lines: %d\n", lines1, lines2);
     printf("Next: %s               Next: %s\n", pieceNames[nextType1], pieceNames[nextType2]);
-    printf("Level: %d  Difficulty: %s  High: %d\n", level, diffNames[difficulty-1], highScore);
+    printf("Level: %d  Difficulty: %s  High1: %d/ High2 %d\n", level, diffNames[difficulty-1], highScore1, highScore2);
     if (paused)
         printf("PAUSED - Press P to resume\n");
 	}
@@ -418,8 +435,10 @@ int main() {
     printf("         Enter your choice (1 to 3): ");
     difficulty = selectDifficulty();
 
+	setHighScoreFiles(difficulty);
     setupDifficulty(difficulty);
-    highScore = loadHighScore();
+    highScore1 = loadHighScore(highScoreFile1);
+	highScore2 = loadHighScore(highScoreFile2);
 
 	if (gameMode == 1) {
         gameOver2 = 1; 
@@ -535,14 +554,21 @@ int main() {
 	printf("Lines Cleared - Player 1: %d | Player 2: %d\n", lines1, lines2);
 	}
 
-	int bestScore = score1;
-	if (gameMode == 2 && score2 > bestScore) bestScore = score2;
-	if (bestScore > highScore) {
-		highScore = bestScore;
-		saveHighScore(highScore);
-		printf("New High Score: %d\n", highScore);
+	if (score1 > highScore1) {
+		highScore1 = score1;
+		saveHighScore(highScoreFile1, highScore1);
+		printf("New High Score (P1): %d\n", highScore1);
 	} else {
-		printf("High Score: %d\n", highScore);
+		printf("High Score (P1): %d\n", highScore1);
+	}
+	if (gameMode == 2) {
+		if (score2 > highScore2) {
+			highScore2 = score2;
+			saveHighScore(highScoreFile2, highScore2);
+			printf("New High Score (P2): %d\n", highScore2);
+		} else {
+			printf("High Score (P2): %d\n", highScore2);
+		}
 	}
 	return 0;
 }	
