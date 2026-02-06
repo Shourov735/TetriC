@@ -20,6 +20,60 @@ int main() {
     printf("         Enter your choice (1 to 3): ");
     difficulty = selectDifficulty();
 
+    printf("\n         Network Play:\n\n");
+    printf("         1. Local (No Network)\n");
+    printf("         2. Online (Server/Client)\n\n");
+    printf("         Enter your choice (1 or 2): ");
+    networkMode = selectNetworkMode();
+
+	if (networkMode) {
+        char ip[64];
+        printf("\n         Online Role:\n\n");
+        printf("         1. Server\n");
+        printf("         2. Client\n\n");
+        printf("         Enter your choice (1 or 2): ");
+        netRole = selectNetworkRole();
+
+        if (!netInit()) {
+            printf("Network init failed.\n");
+            Sleep(1500);
+            networkMode = 0;
+        } else {
+            if (netRole == 1) {
+                printf("Waiting for client on port %d...\n", NET_PORT);
+                if (!netStartServer()) {
+                    printf("Server setup failed.\n");
+                    Sleep(1500);
+                    networkMode = 0;
+                }
+            } else {
+                printf("Enter server IP: ");
+                scanf("%63s", ip);
+                while (getchar() != '\n');
+                if (!netStartClient(ip)) {
+                    printf("Client connect failed.\n");
+                    Sleep(1500);
+                    networkMode = 0;
+                }
+            }
+
+            if (networkMode) {
+                if (!netHandshake()) {
+                    printf("Network test failed.\n");
+                    Sleep(1500);
+                    networkMode = 0;
+                } else {
+                    printf("Network test OK!\n");
+                    Sleep(1000);
+                }
+            }
+
+            if (!networkMode) {
+                netCleanup();
+            }
+        }
+    }
+
 	setHighScoreFiles(difficulty);
     setupDifficulty(difficulty);
     highScore1 = loadHighScore(highScoreFile1);
@@ -144,6 +198,9 @@ int main() {
 		} else {
 			printf("High Score (P2): %d\n", highScore2);
 		}
+	}
+	if (networkMode) {
+		netCleanup();
 	}
 	return 0;
 }

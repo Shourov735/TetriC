@@ -79,3 +79,21 @@ int selectDifficulty() {
 	Sleep(1500);
 	return 2;
 }
+
+int selectNetworkMode() {
+	int choice;
+	scanf("%d", &choice);
+	while (getchar() != '\n');
+	if (choice == 2) return 1;
+	return 0;
+}
+
+int selectNetworkRole() {
+	int choice;
+	scanf("%d", &choice);
+	while (getchar() != '\n');
+	if (choice == 1 || choice == 2) return choice;
+	printf("Invalid choice! Defaulting to Server.\n");
+	Sleep(1500);
+	return 1;
+}

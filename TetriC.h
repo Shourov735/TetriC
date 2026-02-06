@@ -73,6 +73,14 @@ int selectDifficulty();
 int selectNetworkMode();
 int selectNetworkRole();
 
+/* Network */
+int netInit();
+void netClose();
+void netCleanup();
+int netStartServer();
+int netStartClient(const char* ip);
+int netHandshake();
+
 /* Board/Piece */
 int collision1(int x, int y, int shape[4][4]);
 int collision2(int x, int y, int shape[4][4]);
