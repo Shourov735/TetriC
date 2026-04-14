@@ -1,48 +1,60 @@
 # TetriC
 
-A Windows console Tetris clone written in C with single-player and local two-player modes.
+A Windows console Tetris clone written in C with local and network play modes.
 
 ## Features
-- Single-player and local two-player gameplay.
+- Local mode with single-player and two-player gameplay.
+- Network mode with single, two-player, and multiplayer gameplay.
+- Server/client socket flow for online matches.
+- Multiplayer matches continue until one winner remains.
 - Easy, Medium, and Hard difficulty presets.
 - Next-piece preview.
 - Level-based speed increases over time.
 - Soft drop and hard drop scoring.
-- Per-difficulty high scores saved to local text files.
+- Per-player high scores saved to local text files.
+
+## Menu Flow
+1. Choose `Local` or `Network`.
+2. Local mode offers `Single Player` or `Two Players`.
+3. Network mode offers `Single`, `Two Player`, or `Multiplayer`.
+4. For online two-player or multiplayer, choose `Server` or `Client`.
+5. A multiplayer server chooses the total player count.
 
 ## Controls
 
-Single Player:
-- Move: A / D
-- Rotate: W
-- Soft drop: S
-- Hard drop: Z
-- Pause: P
-- Quit: Q
+Single Player and Local Player 1:
+- Move: `A` / `D`
+- Rotate: `W`
+- Soft drop: `S`
+- Hard drop: `Z`
+- Pause: `P`
+- Quit: `Q`
 
-Two Players:
-- Player 1: A / D / W / S, Hard drop: Z
-- Player 2: Arrow keys, Hard drop: Space
-- Pause: P
-- Quit: Q
+Local Player 2:
+- Move: Left / Right Arrow
+- Rotate: Up Arrow
+- Soft drop: Down Arrow
+- Hard drop: Space
+
+Online:
+- Control your own board with `WASD/Z`.
+- Arrow keys and `Space` also work for your local online board.
+- `P` toggles pause for the online session.
+- `Q` leaves the current match.
 
 ## Scoring and Leveling
-- Line clears (per clear, multiplied by current level):
-  - 1 line: 100
-  - 2 lines: 300
-  - 3 lines: 500
-  - 4+ lines: 800
-- Soft drop: +1 per row.
-- Hard drop: +2 per row.
-- Speed increases on a timer based on the selected difficulty until a minimum speed is reached.
+- 1 line: `100 x level`
+- 2 lines: `300 x level`
+- 3 lines: `500 x level`
+- 4 or more lines: `800 x level`
+- Soft drop: `+1` per row
+- Hard drop: `+2` per row
 
 ## Build (Windows)
 
-This project uses Windows console APIs and is intended for Windows.
-
 ### MinGW (GCC)
 ```bash
-gcc -std=c11 -O2 -o TetriC.exe *.c -lws2_32
+gcc -std=c11 -O2 -Wall -Wextra -pedantic -o TetriC.exe *.c -lws2_32
 ```
 
 ### MSVC (Developer Command Prompt)
@@ -54,9 +66,3 @@ cl /O2 /W3 /Fe:TetriC.exe *.c
 ```bat
 TetriC.exe
 ```
-
-## High Scores
-High scores are stored in plain text files in the project directory:
-- `highscore_easy_p1.txt`, `highscore_easy_p2.txt`
-- `highscore_medium_p1.txt`, `highscore_medium_p2.txt`
-- `highscore_hard_p1.txt`, `highscore_hard_p2.txt`
