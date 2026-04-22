@@ -37,15 +37,20 @@ static char actionFromArrowKey(int key) {
 	return 0;
 }
 
+static int competitiveNetworkMatch(void) {
+	return networkSessionActive() && gameMode != 1;
+}
+
 static void initialisePlayersForGame(void) {
 	int i;
 
 	resetAllPlayers();
-	if (networkMode && totalPlayers > 1) {
-		players[localPlayerId - 1].nextType = rand() % 7;
-		newPieceForPlayer(localPlayerId);
+	if (networkSessionActive()) {
 		for (i = 1; i <= totalPlayers; i++) {
-			if (i != localPlayerId) {
+			if (i == localPlayerId && localControlsNetworkBoard()) {
+				players[i - 1].nextType = rand() % 7;
+				newPieceForPlayer(i);
+			} else {
 				players[i - 1].nextType = -1;
 				memset(players[i - 1].board, 0, sizeof(players[i - 1].board));
 				memset(&players[i - 1].current, 0, sizeof(players[i - 1].current));
@@ -58,7 +63,11 @@ static void initialisePlayersForGame(void) {
 }
 
 static int shouldContinue(void) {
-	if (networkMode && totalPlayers > 1) return winnerPlayerId == 0;
+	if (competitiveNetworkMatch()) return winnerPlayerId == 0;
+	if (networkSessionActive() && gameMode == 1) {
+		PlayerState* player = getPlayerState(1);
+		return player != NULL && player->connected && !player->gameOver;
+	}
 	if (gameMode == 1) return !gameOver1;
 	return !gameOver1 && !gameOver2;
 }
@@ -72,7 +81,7 @@ static void finalizeNetworkResult(void) {
 	DWORD startTick;
 	int fallbackWinner;
 
-	if (!(networkMode && totalPlayers > 1)) return;
+	if (!competitiveNetworkMatch()) return;
 
 	if (netRole == ROLE_SERVER) {
 		if (winnerPlayerId > 0) {
@@ -103,7 +112,7 @@ static void finalizeNetworkResult(void) {
 static void printMatchSummary(void) {
 	int i;
 
-	if (networkMode && totalPlayers > 1) {
+	if (competitiveNetworkMatch()) {
 		int winner = resolvedWinnerId();
 		if (winner > 0) printf("Winner: Player %d\n", winner);
 		else printf("Match ended without a confirmed winner.\n");
@@ -160,11 +169,7 @@ int main() {
 		printf("         3. Multiplayer\n\n");
 		printf("         Enter your choice (1 to 3): ");
 		gameMode = selectNetworkGameMode();
-		if (gameMode == 1) {
-			totalPlayers = 1;
-			localPlayerId = 1;
-			netRole = 0;
-		} else {
+		{
 			char ip[64];
 			printf("\n         Online Role:\n\n");
 			printf("         1. Server\n");
@@ -175,12 +180,15 @@ int main() {
 				if (gameMode == 3) {
 					printf("\n         Total Players (3 to %d): ", MAX_PLAYERS);
 					totalPlayers = selectPlayerCount();
-				} else {
+				} else if (gameMode == 2) {
 					totalPlayers = 2;
+				} else {
+					totalPlayers = 1;
 				}
 				localPlayerId = 1;
 			} else {
-				totalPlayers = gameMode == 2 ? 2 : 3;
+				totalPlayers = (gameMode == 1) ? 1 : (gameMode == 2 ? 2 : 3);
+				localPlayerId = 1;
 			}
 
 			if (!netInit()) {
@@ -189,7 +197,7 @@ int main() {
 			}
 
 			if (netRole == ROLE_SERVER) {
-				printf("Waiting for %d remote player(s) on port %d...\n", totalPlayers - 1, NET_PORT);
+				printf("Waiting for %d remote connection(s) on port %d...\n", networkRemoteCount(), NET_PORT);
 				if (!netStartServer(totalPlayers)) {
 					printf("Server setup failed.\n");
 					netCleanup();
@@ -211,7 +219,11 @@ int main() {
 				netCleanup();
 				return 1;
 			}
-			printf("Network ready. You are Player %d of %d.\n", localPlayerId, totalPlayers);
+			if (gameMode == 1 && netRole == ROLE_SERVER) {
+				printf("Network ready. Hosting a mirrored single-player session for Player 1.\n");
+			} else {
+				printf("Network ready. You are Player %d of %d.\n", localPlayerId, totalPlayers);
+			}
 			Sleep(1000);
 		}
 	}
@@ -228,20 +240,24 @@ int main() {
 	if (!networkMode && gameMode == 2) {
 		highScore1 = loadHighScore(highScoreFile1);
 		highScore2 = loadHighScore(highScoreFile2);
+	} else if (networkSessionActive() && !localControlsNetworkBoard()) {
+		localHighScoreFile[0] = '\0';
+		highScore1 = 0;
+		highScore2 = 0;
 	} else {
 		getHighScoreFileForPlayer(difficulty, localPlayerId, localHighScoreFile, sizeof(localHighScoreFile));
 		highScore1 = loadHighScore(localHighScoreFile);
 		highScore2 = 0;
 	}
 
-	seed = (networkMode && totalPlayers > 1) ? netSyncSeed() : (unsigned int)time(NULL);
+	seed = networkSessionActive() ? netSyncSeed() : (unsigned int)time(NULL);
 	srand(seed);
 	initialisePlayersForGame();
 	fflush(stdout);
 	clearScreen();
 	hidecursor();
 
-	if (networkMode && totalPlayers > 1) {
+	if (networkSessionActive() && localControlsNetworkBoard()) {
 		if (netSendState(localPlayerId) < 0) {
 			gotoxy(0, HEIGHT + 7);
 			printf("Unable to send the first network state.\n");
@@ -255,23 +271,23 @@ int main() {
 		DWORD lastSpeedTick = lastTick;
 
 		while (shouldContinue()) {
-			if (networkMode && totalPlayers > 1) netPollInputs();
+			if (networkSessionActive()) netPollInputs();
 			drawBoard();
 
 			if (_kbhit()) {
 				int ch = _getch();
 				if (ch == 'q' || ch == 'Q') {
-					if (networkMode && totalPlayers > 1 && netRole == ROLE_CLIENT) netSendInput('Q');
+					if (networkSessionActive() && netRole == ROLE_CLIENT) netSendInput('Q');
 					break;
 				}
 				if (ch == 'p' || ch == 'P') {
 					paused = !paused;
-					if (networkMode && totalPlayers > 1) netSendInput('P');
+					if (networkSessionActive()) netSendInput('P');
 				}
 				if (!paused) {
-					if (networkMode && totalPlayers > 1) {
+					if (networkSessionActive()) {
 						char action = 0;
-						if (playerIsAlive(localPlayerId)) {
+						if (localControlsNetworkBoard() && playerIsAlive(localPlayerId)) {
 							if (ch == 0 || ch == 224) action = actionFromArrowKey(_getch());
 							else if (ch == ' ') action = 'H';
 							else action = actionFromWasdKey(ch);
@@ -297,8 +313,8 @@ int main() {
 			{
 				DWORD now = GetTickCount();
 				if (!paused && now - lastTick > (DWORD)speed) {
-					if (networkMode && totalPlayers > 1) {
-						if (playerIsAlive(localPlayerId)) moveDownForPlayer(localPlayerId);
+					if (networkSessionActive()) {
+						if (localControlsNetworkBoard() && playerIsAlive(localPlayerId)) moveDownForPlayer(localPlayerId);
 					} else {
 						if (playerIsAlive(1)) moveDownForPlayer(1);
 						if (gameMode == 2 && playerIsAlive(2)) moveDownForPlayer(2);
@@ -319,16 +335,22 @@ int main() {
 				}
 			}
 
-			if (networkMode && totalPlayers > 1) {
-				if (netRole == ROLE_SERVER && winnerPlayerId == 0) {
+			if (networkSessionActive()) {
+				if (competitiveNetworkMatch() && netRole == ROLE_SERVER && winnerPlayerId == 0) {
 					int winner = findWinningPlayer();
 					if (winner != 0) {
 						winnerPlayerId = winner;
 						netBroadcastWinner(winnerPlayerId);
 					}
 				}
-				if (netSendState(localPlayerId) < 0) {
-					if (netRole == ROLE_CLIENT) {
+				if (localControlsNetworkBoard() && netSendState(localPlayerId) < 0) {
+					if (gameMode == 1) {
+						PlayerState* localPlayer = getPlayerState(localPlayerId);
+						if (localPlayer != NULL) {
+							localPlayer->connected = 0;
+							localPlayer->gameOver = 1;
+						}
+					} else if (netRole == ROLE_CLIENT) {
 						int fallbackWinner = findWinningPlayer();
 						winnerPlayerId = fallbackWinner > 0 ? fallbackWinner : -1;
 					} else if (winnerPlayerId == 0) {
@@ -359,6 +381,8 @@ int main() {
 		} else {
 			printf("High Score (P2): %d\n", highScore2);
 		}
+	} else if (networkSessionActive() && !localControlsNetworkBoard()) {
+		printf("Server monitor view: no local high score was saved.\n");
 	} else {
 		PlayerState* localPlayer = getPlayerState(localPlayerId);
 		int localScore = localPlayer != NULL ? localPlayer->score : 0;
@@ -371,9 +395,6 @@ int main() {
 		}
 	}
 
-	if (networkMode && totalPlayers > 1) netCleanup();
+	if (networkSessionActive()) netCleanup();
 	return 0;
 }
-
-
-

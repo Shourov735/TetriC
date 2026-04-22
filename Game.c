@@ -207,9 +207,23 @@ int findWinningPlayer() {
 	return fallbackWinner;
 }
 
+int networkSessionActive() {
+	return networkMode == PLAY_NETWORK && (netRole == ROLE_SERVER || netRole == ROLE_CLIENT);
+}
+
+int networkRemoteCount() {
+	if (!networkSessionActive()) return 0;
+	if (gameMode == 1) return 1;
+	return totalPlayers > 1 ? totalPlayers - 1 : 0;
+}
+
+int localControlsNetworkBoard() {
+	if (!networkSessionActive()) return 1;
+	return !(gameMode == 1 && netRole == ROLE_SERVER);
+}
+
 void applyRemoteInput(char code) {
 	if (code == 'p' || code == 'P') {
 		paused = !paused;
 	}
 }
-

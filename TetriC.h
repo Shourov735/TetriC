@@ -1,6 +1,14 @@
 #ifndef TETRIS_H
 #define TETRIS_H
 
+#ifndef WINVER
+#define WINVER 0x0600
+#endif
+
+#ifndef _WIN32_WINNT
+#define _WIN32_WINNT 0x0600
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <winsock2.h>
@@ -9,12 +17,15 @@
 #include <conio.h>
 #include <time.h>
 #include <string.h>
+
+#ifdef _MSC_VER
 #pragma comment(lib, "ws2_32.lib")
+#endif
 
 #define WIDTH 10
 #define HEIGHT 20
 #define SIDE_W 50
-#define NET_PORT 27015
+#define NET_PORT 1609
 #define NET_BUF 64
 #define MAX_PLAYERS 6
 
@@ -104,6 +115,9 @@ int selectPlayerCount();
 int playerIsAlive(int playerId);
 int countAlivePlayers();
 int findWinningPlayer();
+int networkSessionActive();
+int networkRemoteCount();
+int localControlsNetworkBoard();
 void applyRemoteInput(char code);
 
 /* Network */
@@ -132,18 +146,6 @@ void mergePieceForPlayer(int playerId);
 int clearLinesForPlayer(int playerId);
 int moveDownForPlayer(int playerId);
 void hardDropForPlayer(int playerId);
-int collision1(int x, int y, int shape[4][4]);
-int collision2(int x, int y, int shape[4][4]);
-void newPiece1();
-void newPiece2();
-void mergePiece1();
-void mergePiece2();
-int clearLines1();
-int clearLines2();
-int moveDown1();
-int moveDown2();
-void hardDrop1();
-void hardDrop2();
 
 /* UI */
 void gotoxy(int x, int y);
@@ -156,6 +158,3 @@ void setPreviewBox(char side[HEIGHT][SIDE_W + 1], int startRow, int type);
 void drawBoard();
 
 #endif
-
-
-

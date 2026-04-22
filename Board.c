@@ -35,14 +35,6 @@ int collisionPlayer(int playerId, int x, int y, int shape[4][4]) {
 	return 0;
 }
 
-int collision1(int x, int y, int shape[4][4]) {
-	return collisionPlayer(1, x, y, shape);
-}
-
-int collision2(int x, int y, int shape[4][4]) {
-	return collisionPlayer(2, x, y, shape);
-}
-
 void copyShape(int dst[4][4], int src[4][4]) {
 	int r, c;
 	for (r = 0; r < 4; r++) {
@@ -84,14 +76,6 @@ void newPieceForPlayer(int playerId) {
 	}
 }
 
-void newPiece1() {
-	newPieceForPlayer(1);
-}
-
-void newPiece2() {
-	newPieceForPlayer(2);
-}
-
 void mergePieceForPlayer(int playerId) {
 	PlayerState* player = getPlayerState(playerId);
 	int r, c;
@@ -108,14 +92,6 @@ void mergePieceForPlayer(int playerId) {
 			}
 		}
 	}
-}
-
-void mergePiece1() {
-	mergePieceForPlayer(1);
-}
-
-void mergePiece2() {
-	mergePieceForPlayer(2);
 }
 
 int clearLinesForPlayer(int playerId) {
@@ -154,14 +130,6 @@ int clearLinesForPlayer(int playerId) {
 	return cleared;
 }
 
-int clearLines1() {
-	return clearLinesForPlayer(1);
-}
-
-int clearLines2() {
-	return clearLinesForPlayer(2);
-}
-
 int moveDownForPlayer(int playerId) {
 	PlayerState* player = getPlayerState(playerId);
 
@@ -176,14 +144,6 @@ int moveDownForPlayer(int playerId) {
 	return 0;
 }
 
-int moveDown1() {
-	return moveDownForPlayer(1);
-}
-
-int moveDown2() {
-	return moveDownForPlayer(2);
-}
-
 void hardDropForPlayer(int playerId) {
 	PlayerState* player = getPlayerState(playerId);
 	int dropped = 0;
@@ -195,12 +155,4 @@ void hardDropForPlayer(int playerId) {
 	}
 	if (dropped > 0) player->score += dropped * 2;
 	moveDownForPlayer(playerId);
-}
-
-void hardDrop1() {
-	hardDropForPlayer(1);
-}
-
-void hardDrop2() {
-	hardDropForPlayer(2);
 }

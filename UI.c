@@ -99,6 +99,7 @@ static void printBoardCells(int playerId, int row) {
 		int active = 0;
 
 		if (player != NULL) {
+			// ar, ac = position inside 4×4 tetromino , row, c = position in 20×10 board
 			int ar = row - player->current.y;
 			int ac = c - player->current.x;
 			filled = player->board[row][c];
@@ -117,29 +118,68 @@ static void drawSingleBoardView(void) {
 	int r;
 
 	clearSide(side);
-	snprintf(line, sizeof(line), "Difficulty: %s", diffNames[difficulty - 1]);
-	setSideLine(side, 0, line);
-	snprintf(line, sizeof(line), "Score: %d", score1);
-	setSideLine(side, 1, line);
-	snprintf(line, sizeof(line), "High: %d", highScore1);
-	setSideLine(side, 2, line);
-	snprintf(line, sizeof(line), "Lines: %d", lines1);
-	setSideLine(side, 3, line);
-	snprintf(line, sizeof(line), "Level: %d", level);
-	setSideLine(side, 4, line);
-	snprintf(line, sizeof(line), "Speed: %dms", speed);
-	setSideLine(side, 5, line);
-	snprintf(line, sizeof(line), "Status: %s", paused ? "PAUSED" : "RUNNING");
-	setSideLine(side, 6, line);
-	snprintf(line, sizeof(line), "Next Piece: %s", safePieceName(nextType1));
-	setSideLine(side, 7, line);
-	setPreviewBox(side, 8, nextType1);
-	setSideLine(side, 14, "Controls:");
-	setSideLine(side, 15, "A/D: Move");
-	setSideLine(side, 16, "W: Rotate");
-	setSideLine(side, 17, "S: Soft drop (+1)");
-	setSideLine(side, 18, "Z: Hard drop (+2/row)");
-	setSideLine(side, 19, "P: Pause   Q: Quit");
+	if (networkSessionActive()) {
+		snprintf(line, sizeof(line), "Mode: Network Single (%s)", netRole == ROLE_SERVER ? "Server" : "Client");
+		setSideLine(side, 0, line);
+		snprintf(line, sizeof(line), "Difficulty: %s", diffNames[difficulty - 1]);
+		setSideLine(side, 1, line);
+		snprintf(line, sizeof(line), "Score: %d", score1);
+		setSideLine(side, 2, line);
+		snprintf(line, sizeof(line), "Lines: %d", lines1);
+		setSideLine(side, 3, line);
+		snprintf(line, sizeof(line), "Level: %d  Speed: %dms", level, speed);
+		setSideLine(side, 4, line);
+		snprintf(line, sizeof(line), "Status: %s", paused ? "PAUSED" : playerStatusText(1));
+		setSideLine(side, 5, line);
+		if (localControlsNetworkBoard()) {
+			snprintf(line, sizeof(line), "High: %d", highScore1);
+			setSideLine(side, 6, line);
+		} else {
+			setSideLine(side, 6, "High: mirrored on client");
+		}
+		snprintf(line, sizeof(line), "Next Piece: %s", safePieceName(nextType1));
+		setSideLine(side, 7, line);
+		setPreviewBox(side, 8, nextType1);
+		if (localControlsNetworkBoard()) {
+			setSideLine(side, 14, "Controls:");
+			setSideLine(side, 15, "A/D or Arrows: Move");
+			setSideLine(side, 16, "W or Up: Rotate");
+			setSideLine(side, 17, "S or Down: Soft drop");
+			setSideLine(side, 18, "Z or Space: Hard drop");
+			setSideLine(side, 19, "P: Pause   Q: Quit");
+		} else {
+			setSideLine(side, 14, "Server Monitor:");
+			setSideLine(side, 15, "Mirrors the remote client board");
+			setSideLine(side, 16, "Use P to pause both sides");
+			setSideLine(side, 17, "Use Q to stop hosting");
+			setSideLine(side, 18, "Gameplay runs on the client");
+			setSideLine(side, 19, "Wait for remote state updates");
+		}
+	} else {
+		snprintf(line, sizeof(line), "Difficulty: %s", diffNames[difficulty - 1]);
+		setSideLine(side, 0, line);
+		snprintf(line, sizeof(line), "Score: %d", score1);
+		setSideLine(side, 1, line);
+		snprintf(line, sizeof(line), "High: %d", highScore1);
+		setSideLine(side, 2, line);
+		snprintf(line, sizeof(line), "Lines: %d", lines1);
+		setSideLine(side, 3, line);
+		snprintf(line, sizeof(line), "Level: %d", level);
+		setSideLine(side, 4, line);
+		snprintf(line, sizeof(line), "Speed: %dms", speed);
+		setSideLine(side, 5, line);
+		snprintf(line, sizeof(line), "Status: %s", paused ? "PAUSED" : "RUNNING");
+		setSideLine(side, 6, line);
+		snprintf(line, sizeof(line), "Next Piece: %s", safePieceName(nextType1));
+		setSideLine(side, 7, line);
+		setPreviewBox(side, 8, nextType1);
+		setSideLine(side, 14, "Controls:");
+		setSideLine(side, 15, "A/D: Move");
+		setSideLine(side, 16, "W: Rotate");
+		setSideLine(side, 17, "S: Soft drop (+1)");
+		setSideLine(side, 18, "Z: Hard drop (+2/row)");
+		setSideLine(side, 19, "P: Pause   Q: Quit");
+	}
 
 	printf("Player 1\n");
 	for (r = 0; r < HEIGHT; r++) {

@@ -57,6 +57,8 @@ Online:
 gcc -std=c11 -O2 -Wall -Wextra -pedantic -o TetriC.exe *.c -lws2_32
 ```
 
+If your GCC toolchain is older and does not expose `getaddrinfo` by default, this project now defines the required Windows version macros in [TetriC.h](/d:/SPL1/TetriC/TetriC.h). If you are building an older copy, add `-D_WIN32_WINNT=0x0600`.
+
 ### MSVC (Developer Command Prompt)
 ```bat
 cl /O2 /W3 /Fe:TetriC.exe *.c
